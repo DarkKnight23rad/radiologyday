@@ -6,100 +6,42 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="quiz-container">
-    <h1>🩻 Radiology Challenge</h1>
-    <div id="question-box">
-        <p id="question-text">Ожидайте начала...</p>
-        <div id="options"></div>
-        <div id="timer"></div>
-    </div>
+<div class="container">
+<h2 id="question">Ожидание начала...</h2>
+<div id="options"></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
 <script>
 const socket = io();
 const username = "{{ username }}";
-let timerInterval;
-socket.emit("join", {username});
 
-socket.on("new_question", () => {
-    socket.emit("get_question", {});
+
+socket.emit('join', {username});
+
+
+socket.on('new_question', ()=>{
+socket.emit('get_question', {username});
 });
 
-socket.on("question", data => {
-    document.getElementById("question-text").innerText = `${data.index}/${data.total}: ${data.text}`;
-    const box = document.getElementById("options");
-    box.innerHTML = "";
-    data.options.forEach((opt, i) => {
-        const btn = document.createElement("button");
-        btn.textContent = opt;
-        btn.onclick = () => answer(i);
-        box.appendChild(btn);
-    });
-    startTimer(data.time);
+
+socket.on('question', (data)=>{
+document.getElementById('question').innerText = data.text;
+const opts = data.options.map((opt, i)=>`<button onclick="sendAnswer(${i})">${opt}</button>`).join('');
+document.getElementById('options').innerHTML = opts;
 });
 
-socket.on("end", data => {
-    window.location.href = "/results";
+
+socket.on('end', (data)=>{
+document.body.innerHTML = `<h2>${data.message}</h2><a href='/results'>Посмотреть результаты</a>`;
 });
 
-function answer(i) {
-    socket.emit("answer", {username, answer: i});
-    clearInterval(timerInterval);
-    document.getElementById("question-text").innerText = "Ответ принят, ждите следующий вопрос...";
-    document.getElementById("options").innerHTML = "";
+
+function sendAnswer(i){
+socket.emit('answer', {username, answer: i});
+document.getElementById('options').innerHTML = '<p>Ответ принят! Ожидайте следующий вопрос...</p>';
 }
-
-function startTimer(seconds) {
-    const timer = document.getElementById("timer");
-    timer.textContent = `⏱ Осталось ${seconds} сек`;
-    timerInterval = setInterval(() => {
-        seconds--;
-        if (seconds <= 0) {
-            clearInterval(timerInterval);
-            timer.textContent = "⏱ Время вышло!";
-        } else {
-            timer.textContent = `⏱ Осталось ${seconds} сек`;
-        }
-    }, 1000);
-}
-</script><script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
-<script>
-  const socket = io();
-
-  const username = "{{ username }}";
-
-  socket.emit('join', { username });
-
-  socket.on('joined', () => {
-    console.log("Подключено!");
-  });
-
-  // Когда ведущий отправляет сигнал на новый вопрос:
-  socket.on('new_question', () => {
-    socket.emit('get_question', { username });
-  });
-
-  // Когда сервер присылает вопрос:
-  socket.on('question', (data) => {
-    document.getElementById("question").innerText = data.text;
-    const opts = data.options.map((o, i) =>
-      `<button onclick="sendAnswer(${i})">${o}</button>`
-    ).join("");
-    document.getElementById("options").innerHTML = opts;
-  });
-
-  // Когда викторина завершена:
-  socket.on('end', (data) => {
-    document.body.innerHTML = `<h2>${data.message}</h2><a href="/results">Посмотреть результаты</a>`;
-  });
-
-  function sendAnswer(i) {
-    socket.emit('answer', { username, answer: i });
-  }
 </script>
-
-</body><h2 id="question">Ожидание начала...</h2>
-<div id="options"></div>
+</body>
 </html>
-
